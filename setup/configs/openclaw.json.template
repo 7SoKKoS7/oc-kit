@@ -1,0 +1,32 @@
+{
+  "_comment": "Base OpenClaw config template. Provider auth profiles built per-install.",
+  "version": "1.0",
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "google/gemini-3.1-flash-lite",
+        "fallbacks": ["openai-codex/gpt-5.4-mini"]
+      }
+    },
+    "list": [
+      {
+        "id": "main",
+        "label": "main",
+        "default": true
+      }
+    ]
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true
+    }
+  },
+  "tools": {
+    "profile": "full",
+    "exec": {
+      "host": "gateway",
+      "security": "full",
+      "ask": "off"
+    }
+  }
+}
