@@ -22,7 +22,7 @@
 ## Hardware
 
 - Mac (model: fill in)
-- Headless setup with remote access via Tailscale + RustDesk
+- Headless setup with remote access via RustDesk
 
 ## Contacts
 

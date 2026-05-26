@@ -22,12 +22,11 @@ sw_vers -productVersion
 command -v brew || /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # 1.3 Core deps
-brew install python@3.11 node jq tailscale git
+brew install python@3.11 node jq git
 
 # 1.4 Verify
 python3 --version  # expect 3.11+
 node --version
-tailscale version
 ```
 
 If any package fails to install, ask user before retrying.
@@ -170,26 +169,7 @@ openclaw message send --channel telegram --target "telegram:<user-id>" \
 
 ---
 
-## Phase 7 — Remote support setup (Tailscale)
-
-```bash
-sudo tailscale up --hostname="$(hostname -s)" --ssh
-tailscale ip -4  # SAVE THIS IP FOR THE USER
-```
-
-Report the Tailscale IP. Tell user: "Your Mac is now accessible via SSH at
-`<tailscale-ip>` from any device in the tailnet."
-
-Add SSH key for Konstantin's support access (only if user agreed):
-```bash
-mkdir -p ~/.ssh && chmod 700 ~/.ssh
-echo "ssh-ed25519 AAAA... konstantin@sokkosai.com" >> ~/.ssh/authorized_keys
-chmod 600 ~/.ssh/authorized_keys
-```
-
----
-
-## Phase 8 — Apply client-specific overlay (if exists)
+## Phase 7 — Apply client-specific overlay (if exists)
 
 Check if there's an overlay folder for this machine:
 ```bash
@@ -202,27 +182,24 @@ extras (e.g. iused.nl monitor, custom skills).
 
 ---
 
-## Phase 9 — Smoke tests
+## Phase 8 — Smoke tests
 
 ```bash
-# 9.1 OpenClaw is alive
+# 8.1 OpenClaw is alive
 openclaw status | grep -E "state|provider"
 
-# 9.2 Send test message via Telegram
+# 8.2 Send test message via Telegram
 openclaw message send --channel telegram --target "<user-id>" \
   --message "Final smoke test ✅"
 
-# 9.3 SSH from external (user verifies on phone or other device)
-echo "Try: ssh $(whoami)@$(tailscale ip -4) from another device"
-
-# 9.4 If iused.nl monitor installed, run once manually
+# 8.3 If iused.nl monitor installed, run once manually
 test -f ~/.openclaw/workspace/toolbox/scripts/iused-monitor.py && \
   python3 ~/.openclaw/workspace/toolbox/scripts/iused-monitor.py
 ```
 
 ---
 
-## Phase 10 — Final report
+## Phase 9 — Final report
 
 Print a summary card to the user:
 
@@ -231,19 +208,15 @@ Print a summary card to the user:
 ✅ OpenClaw installation complete
 
 Hostname:      $(hostname -s)
-Tailscale IP:  $(tailscale ip -4)
 Telegram bot:  @<bot_username>
 AI provider:   <ChatGPT Plus | OpenAI API | Gemini Free>
 Workspace:     ~/.openclaw/workspace/
-
-Remote support:
-  ssh $(whoami)@$(tailscale ip -4)
 
 Logs:
   tail -f ~/.openclaw/gateway.log
 
 If anything stops working:
-  WhatsApp: +31 6 13608863
+  WhatsApp: +31 6 13608863 (Konstantin / SoKKoS)
 ═══════════════════════════════════════
 ```
 

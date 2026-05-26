@@ -22,7 +22,7 @@
 ## Оборудование
 
 - Mac (модель: дополни)
-- Headless setup, remote через Tailscale + RustDesk
+- Headless setup, remote через RustDesk
 
 ## Контакты
 

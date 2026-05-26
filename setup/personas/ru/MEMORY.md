@@ -7,7 +7,6 @@
 - OpenClaw установлен на этом Mac: {{INSTALL_DATE}}
 - AI provider: {{PROVIDER}}
 - Telegram bot: @{{BOT_USERNAME}}
-- Tailscale IP: {{TAILSCALE_IP}}
 
 ## Решения
 

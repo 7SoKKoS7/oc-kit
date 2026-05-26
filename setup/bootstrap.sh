@@ -24,7 +24,7 @@ if ! command -v brew >/dev/null 2>&1; then
 fi
 
 log "Installing core dependencies..."
-brew install -q python@3.11 node jq tailscale git 2>&1 | tail -3
+brew install -q python@3.11 node jq git 2>&1 | tail -3
 
 # ---------- Claude Code install ----------
 log "Installing Claude Code CLI..."
