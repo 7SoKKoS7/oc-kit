@@ -24,6 +24,19 @@ rm -rf ~/Library/Caches/com.anthropic.claude-code 2>/dev/null || true
 rm -rf ~/Library/Application\ Support/Claude 2>/dev/null || true
 rm -rf ~/.local/share/claude 2>/dev/null || true
 
+# 2b. Remove macOS Keychain credentials (per Anthropic docs: macOS stores
+#     Claude Code OAuth tokens in encrypted Keychain, NOT just .credentials.json).
+#     Without this, the installer's OAuth token persists on client Mac forever.
+log "Removing Claude Code credentials from macOS Keychain..."
+# Try common service names — Anthropic may use any of these.
+for svc in "Claude Code-credentials" "Claude Code" "com.anthropic.claude-code" "claude-code"; do
+  security delete-generic-password -s "$svc" 2>/dev/null && log "  removed Keychain: $svc" || true
+done
+# Also check for any Anthropic-prefixed entries
+security find-generic-password -l "Claude" 2>/dev/null && \
+  warn "⚠️  Keychain may still contain Claude entries — check Keychain Access manually" || \
+  log "✅ No 'Claude' entries found in Keychain"
+
 # 3. Remove SHELL RC entries — surgical patterns only
 # Only delete lines matching Claude Code installer's signature, not arbitrary "claude" mentions.
 log "Removing Claude Code install lines from shell rc files (surgical)..."

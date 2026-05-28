@@ -7,6 +7,18 @@
 
 You are Claude Code running on Mark's Mac. Execute every step sequentially. Mark heeft expliciet bevestigd: alleen wat hieronder staat — **geen Tailscale, geen SSH, geen Gemini, geen Codex CLI, geen Gmail integratie**.
 
+## Phase 0 — Auth (already done by Konstantin before this prompt)
+
+Konstantin authenticated Claude Code via one of two methods (no Anthropic browser session on Mark's Mac):
+
+**Option A (preferred): `CLAUDE_CODE_OAUTH_TOKEN` env var**
+Konstantin generated a long-lived OAuth token on his own machine via `claude setup-token`, then set `export CLAUDE_CODE_OAUTH_TOKEN=<token>` before launching `claude` here. No browser was opened on Mark's Mac.
+
+**Option B (fallback): "Paste code here" out-of-band flow**
+`claude` printed a URL + opened browser locally → Konstantin closed the browser on Mark's Mac → opened the same URL on his own device (Anthropic Max session) → approved → browser displayed a login code → Konstantin pasted the code back into Mark's terminal at the `Paste code here if prompted` prompt. Token stored in macOS Keychain on Mark's Mac (will be removed by Phase 10 cleanup).
+
+Either way, **no Anthropic session cookies exist in Mark's browser**. Only the OAuth token in Keychain (Option B) or env var (Option A).
+
 ## Mode of operation
 
 - Run one step at a time. Verify each succeeds before moving on.
