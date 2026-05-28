@@ -5,27 +5,17 @@
 > **Use case:** iused.nl MacBook stock monitor → @Comp707bot Telegram alerts
 > **Hardware:** MacBook Pro 2021 M1 Pro 16GB/512GB (headless via RustDesk)
 
-You are Claude Code running on Mark's Mac. Execute every step sequentially. Mark heeft expliciet bevestigd: alleen wat hieronder staat — **geen Tailscale, geen SSH, geen Gemini, geen Codex CLI, geen Gmail integratie**.
+**Operator checklist for Konstantin** — execute manually via RustDesk session to Mark's Mac. No Claude Code or Anthropic credentials are installed on Mark's Mac. All commands typed into Mark's Terminal via RustDesk clipboard sharing.
 
-## Phase 0 — Auth (already done by Konstantin before this prompt)
-
-Konstantin authenticated Claude Code via one of two methods (no Anthropic browser session on Mark's Mac):
-
-**Option A (preferred): `CLAUDE_CODE_OAUTH_TOKEN` env var**
-Konstantin generated a long-lived OAuth token on his own machine via `claude setup-token`, then set `export CLAUDE_CODE_OAUTH_TOKEN=<token>` before launching `claude` here. No browser was opened on Mark's Mac.
-
-**Option B (fallback): "Paste code here" out-of-band flow**
-`claude` printed a URL + opened browser locally → Konstantin closed the browser on Mark's Mac → opened the same URL on his own device (Anthropic Max session) → approved → browser displayed a login code → Konstantin pasted the code back into Mark's terminal at the `Paste code here if prompted` prompt. Token stored in macOS Keychain on Mark's Mac (will be removed by Phase 10 cleanup).
-
-Either way, **no Anthropic session cookies exist in Mark's browser**. Only the OAuth token in Keychain (Option B) or env var (Option A).
+Mark explicitly confirmed: install **alleen wat hieronder staat** — geen Tailscale, geen SSH, geen Gemini, geen Gmail integratie. Geen permanente remote-access voor Konstantin.
 
 ## Mode of operation
 
-- Run one step at a time. Verify each succeeds before moving on.
-- `[ASK USER]` = stop and wait for Konstantin's reply.
-- `[ASK MARK]` = wait for Mark's reply (Konstantin proxies via WhatsApp).
-- If a step fails twice → STOP and print the exact error.
+- Manual mode. Konstantin reads each step, types command via RustDesk Terminal on Mark's Mac.
+- `[ASK MARK]` = ask Mark live (RustDesk chat / WhatsApp), use his answer.
+- If a step fails twice → STOP, diagnose via WhatsApp screenshot to Konstantin (this is his own runbook, he is Konstantin).
 - NEVER write API keys/tokens to git-tracked files (only `~/.openclaw/.env` chmod 600).
+- Provider choice (Phase 5) is **decided live** with Mark — see options below.
 
 ---
 
@@ -98,24 +88,52 @@ No `[ASK USER]` — language en name al bekend.
 
 ---
 
-## Phase 5 — AI provider: OpenAI direct (Mark's own API key)
+## Phase 5 — AI provider (decided live with Mark)
 
-Mark heeft een OpenAI API key (ChatGPT Pro abonnement + eigen platform.openai.com key). Geen Codex CLI, geen Gemini, geen Plus OAuth.
+Mark heeft **beide** beschikbaar — ChatGPT Pro abonnement én eigen OpenAI API key. Op moment van install kies één van drie paden:
 
-`[ASK MARK]`: "Mark, plak hier uw OpenAI API key (begint met `sk-`). De key wordt **alleen** opgeslagen in `~/.openclaw/.env` op uw eigen Mac, chmod 600. Niemand anders ziet 'm — ook ik niet."
+### Pad A — alleen API key (snelst, ~€1/mnd voor iused use case)
 
-Wait for Mark to paste the key directly.
+`[ASK MARK]`: "Plak uw OpenAI API key (sk-...) — wordt alleen opgeslagen in `~/.openclaw/.env` chmod 600 op uw Mac."
 
 ```bash
-# Mark plakt key — agent leest input variable als $OPENAI_KEY
 echo "OPENAI_API_KEY=${OPENAI_KEY}" >> ~/.openclaw/.env
 chmod 600 ~/.openclaw/.env
-
 openclaw configure provider add openai
-openclaw status   # verify provider auth: ok
+openclaw status   # verify auth: ok
 ```
 
-If `auth: ok` does not appear within 30s — STOP, ask Konstantin.
+### Pad B — alleen ChatGPT Pro (Codex CLI, valt onder $200/mnd plan, geen extra €)
+
+```bash
+brew install openai/codex/codex
+codex auth   # opens browser — Mark logs in to ChatGPT Pro
+openclaw configure provider add openai-codex
+openclaw status   # verify auth: ok
+```
+
+### Pad C — hybrid (Pro primair + API als fallback, beste lange termijn)
+
+```bash
+# 1. Codex (Pro) als primair
+brew install openai/codex/codex
+codex auth
+openclaw configure provider add openai-codex
+
+# 2. API key als fallback
+echo "OPENAI_API_KEY=${OPENAI_KEY}" >> ~/.openclaw/.env
+chmod 600 ~/.openclaw/.env
+openclaw configure provider add openai
+
+# 3. Set fallback chain
+openclaw configure agent main \
+  --model openai-codex/gpt-5-5 \
+  --fallback openai/gpt-5-5
+
+openclaw status   # both providers auth: ok
+```
+
+**Default tijdens install:** vraag Mark wat hij prefereert. Pad C is langeretermijn beste (no surprises bij verbruik), Pad A is snelst voor demo, Pad B vermijdt elke € maar Codex CLI install kan vies zijn.
 
 ---
 
@@ -221,27 +239,21 @@ Then send same summary to Mark via Telegram bot.
 
 ---
 
-## Phase 10 — Cleanup (ALLEEN na Konstantin's bevestiging)
+## Phase 10 — Verify no Anthropic footprint on Mark's Mac
 
-`[ASK USER]` Konstantin: "Alles werkt? Cleanup uitvoeren? (ja/nee)"
-
-If Konstantin says "ja":
+Manuele install = geen Claude Code op Mark's Mac. Niets te verwijderen. Quick verify:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/7SoKKoS7/oc-kit/main/setup/scripts/claude-code-uninstall.sh | bash
+ls ~/.claude/ 2>&1 | head -3
+ls ~/.local/share/claude 2>&1 | head -3
+command -v claude && echo "⚠️  claude found unexpectedly" || echo "✅ no claude CLI"
+test -f ~/.openclaw/.env && stat -f "%Sp" ~/.openclaw/.env   # expect -rw-------
+ls -la ~/Library/LaunchAgents/nl.user.iused-monitor.plist    # iused-monitor LaunchAgent loaded
 ```
 
-This removes:
-- ✅ Claude Code (`~/.claude/`, `~/.local/share/claude`, caches)
-- ✅ Anthropic OAuth tokens (in `~/.claude/auth.json`)
-- ✅ PATH/alias entries (surgical sed — alleen Claude Code installer lijnen)
+Als iets onverwacht: draai eenmalig `curl -fsSL https://raw.githubusercontent.com/7SoKKoS7/oc-kit/main/setup/scripts/claude-code-uninstall.sh | bash` (verwijdert Claude Code traces als ze bestaan, behoudt OpenClaw + Mark's shell history).
 
-Does NOT remove:
-- ❌ OpenClaw (production system — moet blijven draaien)
-- ❌ Mark's `.zsh_history` / `.bash_history` (Mark's eigen geschiedenis)
-- ❌ Homebrew packages (python/node/jq/git — gedeelde deps)
-
-After cleanup, Konstantin disconnects RustDesk.
+After verify clean, Konstantin disconnects RustDesk.
 
 ---
 
@@ -249,7 +261,7 @@ After cleanup, Konstantin disconnects RustDesk.
 
 - NEVER install Tailscale or SSH public key (out of scope — Mark betaalde alleen €49 install, geen permanent remote access)
 - NEVER install Gemini/Google plugins or Gmail integration (Mark Q4 niet nodig)
-- NEVER install Codex CLI / `openai/codex/codex` brew tap (gebruiken direct API key)
+- NEVER install Claude Code op Mark's Mac (manueel installeren, geen autonomous agent)
 - NEVER write Mark's OpenAI key to any file outside `~/.openclaw/.env`
 - NEVER skip Phase 8 smoke tests
 - NEVER run Phase 10 cleanup before Konstantin explicit "ja"
@@ -261,7 +273,7 @@ After cleanup, Konstantin disconnects RustDesk.
 
 If any phase fails twice:
 
-1. Print exact failing step + last 30 lines of relevant log
-2. WhatsApp Konstantin (+31 6 13608863) een screenshot van de error
-3. Exit without running Phase 10 cleanup (laat OpenClaw status zoals het is voor diagnostics)
-4. Konstantin kan resume via: `claude` → "Resume from Phase N, last error: ..."
+1. Note exact failing step + last 30 lines of relevant log
+2. Diagnose via co-pilot chat (Konstantin shares output, gets next command)
+3. Laat OpenClaw status zoals het is voor diagnostics
+4. Resume from failed step na fix — geen agent state om te restoren (manuele mode)
